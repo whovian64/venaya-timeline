@@ -162,7 +162,10 @@ th{font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:
 .swatches button[aria-pressed="true"]{box-shadow:0 0 0 3px var(--fg)}
 .swatches button:disabled{opacity:.28;cursor:not-allowed}
 .swatches button:disabled::after{content:"";position:absolute;left:4px;right:4px;top:50%;border-top:2px solid var(--fg);transform:rotate(-45deg)}
-.swatches input[type=color]{width:42px;height:42px;padding:2px;min-height:0;border-radius:50%}
+.swatches input[type=color]{width:64px;height:44px;padding:2px;min-height:0;border-radius:8px;cursor:pointer}
+.swatches input[type=text]{width:120px;font-family:var(--f-mono)}
+.swatches button.sug{width:auto;height:auto;min-height:40px;border-radius:8px;background:var(--surface);border:1px solid var(--line);box-shadow:none;padding:6px 12px;color:var(--fg)}
+.swatches button.sug::after{display:none}
 .ev{border:1px dashed var(--line);border-radius:8px;padding:12px;display:grid;gap:10px;background:var(--surface2)}
 .err{color:#b3261e;font-size:13.5px;margin:0}
 :root[data-theme="dark"] .err{color:#ff8a80}
@@ -278,7 +281,7 @@ pre.code{margin:0;padding:10px;background:var(--surface2);border:1px solid var(-
       </div>
       <div class="formgrid">
         <div class="fld"><label for="f-name">Your name</label><input id="f-name" type="text" maxlength="24" placeholder="How you want to be credited"></div>
-        <div class="fld"><span class="lbl2">Your color</span><div class="swatches" id="f-sw"></div><span class="meta" id="f-colmsg">Colors close to the built-in ones (book, Andrew, Kester, derived, Whovian) or to another contributor are blocked.</span></div>
+        <div class="fld"><span class="lbl2">Your color</span><div class="swatches" id="f-sw"></div><span class="meta" id="f-colmsg">Use the color wheel or type a hex code. Colors close to the built-in ones (book, Andrew, Kester, derived, Whovian) or to another contributor are blocked.</span></div>
         <div class="fld full"><label for="f-title">Title</label><input id="f-title" type="text" maxlength="120" placeholder="Short name for the event"></div>
         <div class="fld full"><label for="f-text">What happened</label><textarea id="f-text" maxlength="1200" placeholder="Describe the event in a few sentences."></textarea></div>
         <div class="fld"><label for="f-lane">Kind</label><select id="f-lane"><option value="history">History</option><option value="people">People</option><option value="books">Books</option><option value="theory">Theory</option></select></div>
@@ -852,28 +855,28 @@ function showCode(o,code,title,e){
 /* ---------- add entry form ---------- */
 var BOOKS=[['Arcane Ascension',['Sufficiently Advanced Magic','On the Shoulders of Titans','The Torch that Ignites the Stars','The Silence of Unworthy Gods','When Wizards Follow Fools','A Brief History of Chronomancy']],['War of Broken Mirrors',['Forging Divinity','Stealing Sorcery','Defying Destiny']],['Weapons and Wielders',['Six Sacred Swords','Diamantine','Soulbrand','Flowbreaker']],['Lost Edge',['Edge of the Woods','Edge of the Dream']]];
 var pick={color:store('ve-color')||'',};
-function refreshSwatches(){['f','l'].forEach(refreshSw);}
+function hsl2hex(h,s,l){s/=100;l/=100;var a=s*Math.min(l,1-l);function f(n){var k=(n+h/30)%12;var c=l-a*Math.max(Math.min(k-3,9-k,1),-1);var v=Math.round(255*c).toString(16);return v.length<2?'0'+v:v;}return '#'+f(0)+f(8)+f(4);}
+function randomFree(){var mine=myProf()?myProf().name:null;for(var i=0;i<500;i++){var hex=hsl2hex(Math.random()*360,55+Math.random()*35,38+Math.random()*24);if(!conflict(hex,mine))return hex;}return '';}
+function refreshSwatches(){if(pick.color&&conflict(pick.color,myProf()?myProf().name:null))pick.color='';['f','l'].forEach(refreshSw);}
 function refreshSw(pf){
   var box=$(pf+'-sw');box.innerHTML='';
-  var mineName=myProf()?myProf().name:null;
-  SWATCH.forEach(function(h){
-    var b=document.createElement('button');b.type='button';b.style.setProperty('--c',h);b.setAttribute('aria-label','Color '+h);
-    var why=conflict(h,mineName);
-    if(why){b.disabled=true;b.title=why;}else{b.title=h;}
-    b.setAttribute('aria-pressed',pick.color.toLowerCase()===h?'true':'false');
-    b.onclick=function(){setColor(h);};box.appendChild(b);
-  });
-  var ci=document.createElement('input');ci.type='color';ci.id=pf+'-col';ci.setAttribute('aria-label','Custom color');ci.value=/^#[0-9a-f]{6}$/i.test(pick.color)?pick.color:'#d6293e';
-  ci.oninput=function(){setColor(ci.value);};box.appendChild(ci);
+  var wheel=document.createElement('input');wheel.type='color';wheel.id=pf+'-col';wheel.setAttribute('aria-label','Color wheel');wheel.value=/^#[0-9a-f]{6}$/i.test(pick.color)?pick.color:'#d6293e';
+  var hex=document.createElement('input');hex.type='text';hex.id=pf+'-hex';hex.maxLength=7;hex.placeholder='#rrggbb';hex.setAttribute('aria-label','Hex color');hex.value=pick.color||'';
+  var sug=document.createElement('button');sug.type='button';sug.className='sug';sug.textContent='Suggest a free color';
+  wheel.oninput=function(){hex.value=wheel.value;setColor(wheel.value);};
+  hex.oninput=function(){var v=hex.value.trim();if(v&&v.charAt(0)!=='#')v='#'+v;if(/^#[0-9a-f]{3}$/i.test(v))v=v.replace(/^#(.)(.)(.)$/,'#$1$1$2$2$3$3');if(/^#[0-9a-f]{6}$/i.test(v)){wheel.value=v;setColor(v);}else{pick.color='';showColMsg(v?'Enter a color like #d6293e.':'');}};
+  sug.onclick=function(){var h=randomFree();if(!h){showColMsg('No free color found. Try picking one by hand.');return;}setColor(h);};
+  box.appendChild(wheel);box.appendChild(hex);box.appendChild(sug);
   showColMsg();
 }
+function syncColorUI(){['f','l'].forEach(function(pf){var w=$(pf+'-col'),h=$(pf+'-hex');if(!w||!h)return;if(pick.color){w.value=pick.color;if(document.activeElement!==h)h.value=pick.color;}});}
 function setColor(h){
+  h=String(h).toLowerCase();
   var why=conflict(h,myProf()?myProf().name:null);
-  if(why){pick.color='';showColMsg('That color is '+why+'. Pick another.');refreshSwatchesPressed();return;}
-  pick.color=h.toLowerCase();store('ve-color',pick.color);refreshSwatchesPressed();showColMsg();
+  if(why){pick.color='';showColMsg('That color is '+why+'. Pick another.');return;}
+  pick.color=h;store('ve-color',h);syncColorUI();showColMsg();
 }
-function refreshSwatchesPressed(){['f-sw','l-sw'].forEach(function(id){Array.prototype.forEach.call($(id).querySelectorAll('button'),function(b){b.setAttribute('aria-pressed',b.style.getPropertyValue('--c').toLowerCase()===pick.color?'true':'false');});});}
-function showColMsg(m){['f-colmsg','l-colmsg'].forEach(function(id){$(id).textContent=m||(pick.color?'Color chosen: '+pick.color+'.':'Colors close to the built-in ones (book, Andrew, Kester, derived, Whovian) or to another contributor are blocked.');});}
+function showColMsg(m){['f-colmsg','l-colmsg'].forEach(function(id){$(id).textContent=m||(pick.color?'Color chosen: '+pick.color+'.':'Use the color wheel or type a hex code. Colors close to the built-in ones (book, Andrew, Kester, derived, Whovian) or to another contributor are blocked.');});}
 function evBlock(){
   var d=document.createElement('div');d.className='ev';
   d.innerHTML='<div class="fld"><label>Source type</label><select data-k="type"><option value="book">Book</option><option value="reddit">Reddit</option><option value="discord">Discord</option><option value="other">Other</option></select></div><div data-fields style="display:grid;gap:10px"></div><div class="acts"><button type="button" data-rm>Remove this source</button></div>';
