@@ -5,26 +5,7 @@
    "color": "#d6293e"
   }
  },
- "events": [
-  {
-   "title": "Setup test entry",
-   "text": "This entry checks that the entry pipeline works.",
-   "lane": "history",
-   "afr": 10010,
-   "refs": [
-    {
-     "type": "book",
-     "series": "Arcane Ascension",
-     "book": "Sufficiently Advanced Magic",
-     "ch": "1"
-    }
-   ],
-   "id": "i1",
-   "issue": 1,
-   "login": "whovian64",
-   "created": 1794866317
-  }
- ],
+ "events": [],
  "lore": [],
  "blocked": []
 }
